@@ -28,8 +28,26 @@ const Tour = require('../model/tourModel');
 
 exports.getAllTours = async (req, res) => {
   try {
+    // BUILD QUERY
+    // 1) FILTERING
+    const queryObj = { ...req.query };
+    const excludeFields = ['page', 'sort', 'limit', 'fields'];
+    excludeFields.forEach((el) => {
+      return delete queryObj[el];
+    });
+    // console.log(req.query, queryObj);
     // console.log(req.requestTime);
-    const tours = await Tour.find(); // This find method will return an array of all documents and also convert to javascript object
+    //2) ADVANCED FILTERING
+
+    const query = Tour.find(queryObj); // This find method will return an array of all documents and also convert to javascript object
+    // const query =  Tour.find()
+    //   .where('duration')
+    //   .equals(5)
+    //   .where('difficulty')
+    //   .equals('easy');
+    // EXECUTE QUERY
+    const tours = await query;
+    // SEND RESPONSE
     res.status(200).json({
       status: 'success',
       results: tours.length, // Not necessary but good practice
@@ -82,7 +100,7 @@ exports.updateTour = async (req, res) => {
   try {
     const tour = await Tour.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
-      runValidators:true
+      runValidators: true,
     });
     res.status(200).json({
       status: 'success',
