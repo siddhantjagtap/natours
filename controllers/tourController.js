@@ -29,7 +29,7 @@ const Tour = require('../model/tourModel');
 exports.getAllTours = async (req, res) => {
   try {
     // BUILD QUERY
-    // 1) FILTERING
+    // 1A) FILTERING
     const queryObj = { ...req.query };
     const excludeFields = ['page', 'sort', 'limit', 'fields'];
     excludeFields.forEach((el) => {
@@ -37,9 +37,31 @@ exports.getAllTours = async (req, res) => {
     });
     // console.log(req.query, queryObj);
     // console.log(req.requestTime);
-    //2) ADVANCED FILTERING
 
-    const query = Tour.find(queryObj); // This find method will return an array of all documents and also convert to javascript object
+    //1B) ADVANCED FILTERING
+    let queryStr = JSON.stringify(queryObj);
+    queryStr = queryStr.replace(/\b(gte|gt|lte|lt)\b/g, (match) => {
+      return `$${match}`;
+    });
+    // console.log(JSON.parse(queryStr));
+
+    let query = Tour.find(JSON.parse(queryStr)); // This find method will return an array of all documents and also convert to javascript object
+
+    //  2) SORTING
+    if (req.query.sort) {
+      const sortBy = req.query.sort.split(',').join(' ');
+      query = query.sort(sortBy);
+    } else {
+      query = query.sort('-createdAt');
+    }
+
+    // 3) FIELD LIMITING
+    if (req.query.fields) {
+      const fields = req.query.fields.split(',').join(' ');
+      query = query.select(fields);
+    }else{
+      query = query.select('-__v')
+    }
     // const query =  Tour.find()
     //   .where('duration')
     //   .equals(5)
