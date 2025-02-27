@@ -31,11 +31,13 @@ exports.aliasTopTours = (req,res,next)=>{
 //   next();
 // };
 
-exports.getAllTours = async (req, res) => {
-  try {
-    // BUILD QUERY
-    // 1A) FILTERING
-    const queryObj = { ...req.query };
+class APIFeatures{
+  constructor(query,queryString){
+    this.query = query;
+    this.queryString = queryString;
+  }
+  filter(){
+    const queryObj = { ...this.queryString };
     const excludeFields = ['page', 'sort', 'limit', 'fields'];
     excludeFields.forEach((el) => {
       return delete queryObj[el];
@@ -49,16 +51,49 @@ exports.getAllTours = async (req, res) => {
       return `$${match}`;
     });
     // console.log(JSON.parse(queryStr));
+    this.query.find(JSON.parse(queryStr))
 
-    let query = Tour.find(JSON.parse(queryStr)); // This find method will return an array of all documents and also convert to javascript object
+    // let query = Tour.find(JSON.parse(queryStr)); 
+     
+  }
+  sort(){
+    if (this.queryString.sort) {
+      const sortBy = this.queryString.sort.split(',').join(' ');
+      this.query = this.query.sort(sortBy);
+    } else {
+      this.query = this.query.sort('-createdAt');
+    }
+  } 
+}
+
+exports.getAllTours = async (req, res) => {
+  try {
+    // BUILD QUERY
+    // 1A) FILTERING
+    // const queryObj = { ...req.query };
+    // const excludeFields = ['page', 'sort', 'limit', 'fields'];
+    // excludeFields.forEach((el) => {
+    //   return delete queryObj[el];
+    // });
+    // // console.log(req.query, queryObj);
+    // // console.log(req.requestTime);
+
+    // //1B) ADVANCED FILTERING
+    // let queryStr = JSON.stringify(queryObj);
+    // queryStr = queryStr.replace(/\b(gte|gt|lte|lt)\b/g, (match) => {
+    //   return `$${match}`;
+    // });
+    // // console.log(JSON.parse(queryStr));
+
+    // let query = Tour.find(JSON.parse(queryStr)); // This find method will return an array of all documents and also convert to javascript object
 
     //  2) SORTING
-    if (req.query.sort) {
-      const sortBy = req.query.sort.split(',').join(' ');
-      query = query.sort(sortBy);
-    } else {
-      query = query.sort('-createdAt');
-    }
+    // if (req.query.sort) {
+    //   const sortBy = req.query.sort.split(',').join(' ');
+    //   query = query.sort(sortBy);
+    // } else {
+    //   query = query.sort('-createdAt');
+    // }
 
     // 3) FIELD LIMITING
     if (req.query.fields) {
@@ -87,7 +122,8 @@ exports.getAllTours = async (req, res) => {
     //   .where('difficulty')
     //   .equals('easy');
     // EXECUTE QUERY
-    const tours = await query;
+    const features = new APIFeatures(Tour.find(), req.query).filter().sort();
+    const tours = await features.query;
     // SEND RESPONSE
     res.status(200).json({
       status: 'success',
